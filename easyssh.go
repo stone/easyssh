@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-// Contains main authority information.
+// MakeConfig contains main authority information.
 // User field should be a name of user on remote server (ex. john in ssh john@example.com).
 // Server field should be a remote machine address (ex. example.com in ssh john@example.com)
 // Key is a path to private key on your local machine.
@@ -32,15 +32,22 @@ type MakeConfig struct {
 	Password string
 }
 
-// returns ssh.Signer from user you running app home path + cutted key path.
-// (ex. pubkey,err := getKeyFile("/.ssh/id_rsa") )
+// returns ssh.Signer, path is either relative path, full path or in the short
+// form of ~/.ssh/id_rsa
+// (ex. pubkey,err := getKeyFile("~/.ssh/id_rsa") )
 func getKeyFile(keypath string) (ssh.Signer, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return nil, err
+
+	var file string
+	if keypath[:1] == "~" {
+		usr, err := user.Current()
+		if err != nil {
+			return nil, err
+		}
+		file = usr.HomeDir + keypath
+	} else {
+		file = keypath
 	}
 
-	file := usr.HomeDir + keypath
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -91,7 +98,7 @@ func (ssh_conf *MakeConfig) connect() (*ssh.Session, error) {
 	return session, nil
 }
 
-// Runs command on remote machine and returns STDOUT
+// Run Runs command on remote machine and returns STDOUT
 func (ssh_conf *MakeConfig) Run(command string) (string, error) {
 	session, err := ssh_conf.connect()
 
